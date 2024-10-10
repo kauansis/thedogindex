@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dog API - Exemplo de Integração</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+    }
+
+    h1 {
+      color: #343a40;
+    }
+
+    #dogImages img, #dogFavorites img {
+      width: 100%;
+      height: auto;
+      max-height: 250px;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
+
+    .dog-image {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    footer {
+      padding: 20px 0;
+      background-color: #343a40;
+      color: white;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .log-item {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Dog API</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSecao('dogImages'); carregarImagens();">Atualizar Imagens</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSecao('dogBreeds'); carregarRacas();">Raças de Cachorros</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSecao('dogTemperament'); carregarTemperamento();">Temperamento de Bulldog</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSecao('dogFavorites'); listarFavoritos();">Favoritos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" onclick="exibirLogs();">Exibir Logs</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 class="text-center mt-5">The Dog API</h1>
+    <div class="row hidden" id="dogImages"></div>
+    <div class="row hidden" id="dogBreeds"></div>
+    <div class="row hidden" id="dogTemperament"></div>
+    <div class="row hidden" id="dogFavorites"></div>
+  </div>
+
+  <!-- Modal for Logs -->
+  <div class="modal fade" id="modalLogs" tabindex="-1" aria-labelledby="modalLogsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalLogsLabel">Logs Registrados</h5>
+          <!-- Removido o botão de fechar -->
+        </div>
+        <div class="modal-body" id="logsContainer">
+          <p>Nenhum log encontrado.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center mt-5">
+    <p>Kauan Schramm - Desenvolvimento Web</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    var chaveApi = 'live_qx3hjCHD32c8qEZGFHY0Gomx7f0n412IvfcLOaGaGbIBsHpdSw08GMIFd6eDDIp1'; // Substitua pela sua chave válida
+    var urlBase = 'https://api.thedogapi.com/v1';
+    var matricula = '404323'; // Matrícula atualizada
+    var logs = [];
+
+    async function registrarLog(sistema, acao, detalhes) {
+      const logEntry = {
+        data: new Date().toLocaleString(),
+        sistema: sistema,
+        acao: acao,
+        detalhes: detalhes
+      };
+      logs.push(logEntry);
+      console.log(logs);
+    }
+
+    function exibirLogs() {
+      var logsContainer = document.getElementById("logsContainer");
+      logsContainer.innerHTML = logs.length ? logs.map((log, index) => `
+        <div class="log-item">
+          <p><strong>Data:</strong> ${log.data} | <strong>Sistema:</strong> ${log.sistema} | <strong>Ação:</strong> ${log.acao} | <strong>Detalhes:</strong> ${log.detalhes}</p>
+          <button class="btn btn-danger btn-sm" onclick="removerLog(${index})">Excluir</button>
+        </div>
+      `).join("") : '<p>Nenhum log encontrado.</p>';
+
+      var modalLogs = new bootstrap.Modal(document.getElementById('modalLogs'));
+      modalLogs.show();
+    }
+
+    function removerLog(index) {
+      logs.splice(index, 1);
+      exibirLogs(); 
+    }
+
+    function mostrarSecao(secao) {
+      document.querySelectorAll('.row').forEach(function(div) {
+        div.classList.add('hidden');
+      });
+      document.getElementById(secao).classList.remove('hidden');
+    }
+
+    var carregarImagens = function() {
+      var url = urlBase + '/images/search?limit=3';
+      fetch(url, {
+        headers: {
+          'x-api-key': chaveApi
+        }
+      })
+      .then(function(resposta) {
+        if (!resposta.ok) {
+          throw new Error('Erro na requisição: ' + resposta.statusText);
+        }
+        return resposta.json();
+      })
+      .then(function(dados) {
+        var divImagens = document.getElementById('dogImages');
+        divImagens.innerHTML = '';
+        dados.forEach(function(dog) {
+          var col = document.createElement('div');
+          col.classList.add('col-12', 'col-md-4', 'dog-image');
+
+          var imagem = document.createElement('img');
+          imagem.src = dog.url;
+
+          var botaoFavoritar = document.createElement('button');
+          botaoFavoritar.textContent = 'Favoritar';
+          botaoFavoritar.classList.add('btn', 'btn-primary', 'mt-2');
+          botaoFavoritar.onclick = function() {
+            favoritarImagem(dog.id);
+          };
+
+          col.appendChild(imagem);
+          col.appendChild(botaoFavoritar);
+          divImagens.appendChild(col);
+        });
+        registrarLog('Dog API', 'carregarImagens', dados.length);
+      })
+      .catch(function(erro) {
+        console.error('Erro ao carregar imagens:', erro);
+      });
+    };
+
+    var favoritarImagem = function(imageId) {
+      var url = urlBase + '/favourites';
+      var dadosFavorito = {
+        image_id: imageId,
+        sub_id: 'usuario-exemplo' // Substitua com o ID do usuário
+      };
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'x-api-key': chaveApi,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dadosFavorito)
+      })
+      .then(function(resposta) {
+        if (!resposta.ok) {
+          throw new Error('Erro ao favoritar imagem: ' + resposta.statusText);
+        }
+        return resposta.json();
+      })
+      .then(function(dados) {
+        alert('Imagem favoritada com sucesso!');
+        listarFavoritos(); // Atualiza lista de favoritos
+        registrarLog('Dog API', 'favoritarImagem', 'Sucesso'); // Registrar log
+      })
+      .catch(function(erro) {
+        console.error('Erro ao favoritar imagem:', erro);
+      });
+    };
+
+    var listarFavoritos = function() {
+      var url = urlBase + '/favourites?sub_id=usuario-exemplo'; // Substitua pelo sub_id do usuário
+      fetch(url, {
+        headers: {
+          'x-api-key': chaveApi
+        }
+      })
+      .then(function(resposta) {
+        if (!resposta.ok) {
+          throw new Error('Erro ao carregar favoritos: ' + resposta.statusText);
+        }
+        return resposta.json();
+      })
+      .then(function(dados) {
+        var divFavoritos = document.getElementById('dogFavorites');
+        divFavoritos.innerHTML = '<h2>Imagens Favoritas</h2>';
+        dados.forEach(function(favorito) {
+          var divFav = document.createElement('div');
+          divFav.classList.add('col-12', 'col-md-4', 'dog-image');
+          
+          var imagem = document.createElement('img');
+          imagem.src = favorito.image.url;
+
+          var botaoRemover = document.createElement('button');
+          botaoRemover.textContent = 'Remover Favorito';
+          botaoRemover.classList.add('btn', 'btn-danger', 'mt-2');
+          botaoRemover.onclick = function() {
+            removerFavorito(favorito.id); // Remove favorito
+          };
+
+          divFav.appendChild(imagem);
+          divFav.appendChild(botaoRemover);
+          divFavoritos.appendChild(divFav);
+        });
+      })
+      .catch(function(erro) {
+        console.error('Erro ao carregar favoritos:', erro);
+      });
+    };
+
+    var removerFavorito = function(favoriteId) {
+      var url = urlBase + '/favourites/' + favoriteId;
+      fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'x-api-key': chaveApi
+        }
+      })
+      .then(function(resposta) {
+        if (!resposta.ok) {
+          throw new Error('Erro ao remover favorito: ' + resposta.statusText);
+        }
+        return resposta.json();
+      })
+      .then(function(dados) {
+        alert('Favorito removido com sucesso!');
+        listarFavoritos(); // Atualiza lista de favoritos
+      })
+      .catch(function(erro) {
+        console.error('Erro ao remover favorito:', erro);
+      });
+    };
+
+    var carregarRacas = function() {
+      var url = urlBase + '/breeds';
+      fetch(url)
+        .then(function(resposta) {
+          if (!resposta.ok) {
+            throw new Error('Erro ao carregar raças: ' + resposta.statusText);
+          }
+          return resposta.json();
+        })
+        .then(function(dados) {
+          var divRacas = document.getElementById('dogBreeds');
+          divRacas.innerHTML = '<h2>Raças de Cachorros</h2>';
+          dados.forEach(function(raca) {
+            var racaDiv = document.createElement('div');
+            racaDiv.classList.add('col-12');
+            racaDiv.innerHTML = `<p>${raca.name}</p>`;
+            divRacas.appendChild(racaDiv);
+          });
+        })
+        .catch(function(erro) {
+          console.error('Erro ao carregar raças:', erro);
+        });
+    };
+
+    var carregarTemperamento = function() {
+      var url = urlBase + '/breeds';
+      fetch(url)
+        .then(function(resposta) {
+          if (!resposta.ok) {
+            throw new Error('Erro ao carregar temperamentos: ' + resposta.statusText);
+          }
+          return resposta.json();
+        })
+        .then(function(dados) {
+          var divTemperamento = document.getElementById('dogTemperament');
+          divTemperamento.innerHTML = '<h2>Temperamentos de Bulldog</h2>';
+          dados.forEach(function(bulldog) {
+            if (bulldog.name.toLowerCase().includes('bulldog')) {
+              var temperamentoDiv = document.createElement('div');
+              temperamentoDiv.classList.add('col-12');
+              temperamentoDiv.innerHTML = `<p>${bulldog.name}: ${bulldog.temperament || 'Não disponível'}</p>`;
+              divTemperamento.appendChild(temperamentoDiv);
+            }
+          });
+        })
+        .catch(function(erro) {
+          console.error('Erro ao carregar temperamentos:', erro);
+        });
+    };
+
+    window.onload = function() {
+      mostrarSecao('dogImages'); 
+      carregarImagens(); 
+    }
+  </script>
+</body>
+</html>
